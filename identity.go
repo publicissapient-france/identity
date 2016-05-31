@@ -62,12 +62,19 @@ func loadIdentity() (*Identity, error) {
 	return &Identity{Name: name, Filename: filename, Hostname: hostname}, nil
 }
 
-func jsonHandler(w http.ResponseWriter, r *http.Request) {
-	identity, err := loadIdentity()
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-	}
+var identity, err = loadIdentity()
 
+func makeHandler(fn func(http.ResponseWriter, *http.Request, *Identity)) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+
+		fn(w, r, identity)
+	}
+}
+
+func jsonHandler(w http.ResponseWriter, r *http.Request, identity *Identity) {
 	js, err := json.Marshal(identity)
 
 	if err != nil {
@@ -77,13 +84,9 @@ func jsonHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write(js)
 }
 
-func identityHandler(w http.ResponseWriter, r *http.Request) {
-	identity, err := loadIdentity()
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-	}
+func identityHandler(w http.ResponseWriter, r *http.Request, identity *Identity) {
+	err := templates.ExecuteTemplate(w, "identity.html", identity)
 
-	err = templates.ExecuteTemplate(w, "identity.html", identity)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
@@ -94,8 +97,8 @@ func staticHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	http.HandleFunc("/", identityHandler)
-	http.HandleFunc("/json", jsonHandler)
+	http.HandleFunc("/", makeHandler(identityHandler))
+	http.HandleFunc("/json", makeHandler(jsonHandler))
 	http.HandleFunc("/static/", staticHandler)
 
 	http.ListenAndServe(":8080", nil)
