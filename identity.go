@@ -6,12 +6,13 @@ import (
 	"os"
 	"log"
 	"io"
+	"encoding/json"
 )
 
 type Identity struct {
-	Name     string
-	Filename string
-	Hostname string
+	Name     string        `json:"name"`
+	Filename string        `json:"filename"`
+	Hostname string        `json:"hostname"`
 }
 
 var templates = template.Must(template.ParseFiles("identity.html"))
@@ -61,6 +62,21 @@ func loadIdentity() (*Identity, error) {
 	return &Identity{Name: name, Filename: filename, Hostname: hostname}, nil
 }
 
+func jsonHandler(w http.ResponseWriter, r *http.Request) {
+	identity, err := loadIdentity()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+
+	js, err := json.Marshal(identity)
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+
+	w.Write(js)
+}
+
 func identityHandler(w http.ResponseWriter, r *http.Request) {
 	identity, err := loadIdentity()
 	if err != nil {
@@ -79,6 +95,7 @@ func staticHandler(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	http.HandleFunc("/", identityHandler)
+	http.HandleFunc("/json", jsonHandler)
 	http.HandleFunc("/static/", staticHandler)
 
 	http.ListenAndServe(":8080", nil)
