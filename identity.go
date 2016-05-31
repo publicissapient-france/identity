@@ -13,6 +13,7 @@ type Identity struct {
 	Name     string        `json:"name"`
 	Filename string        `json:"filename"`
 	Hostname string        `json:"hostname"`
+	Hits     int           `json:"hits"`
 }
 
 var templates = template.Must(template.ParseFiles("identity.html"))
@@ -59,7 +60,7 @@ func loadIdentity() (*Identity, error) {
 		return nil, err
 	}
 
-	return &Identity{Name: name, Filename: filename, Hostname: hostname}, nil
+	return &Identity{Name: name, Filename: filename, Hostname: hostname, Hits: 0}, nil
 }
 
 var identity, err = loadIdentity()
@@ -75,6 +76,8 @@ func makeHandler(fn func(http.ResponseWriter, *http.Request, *Identity)) http.Ha
 }
 
 func jsonHandler(w http.ResponseWriter, r *http.Request, identity *Identity) {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+
 	js, err := json.Marshal(identity)
 
 	if err != nil {
@@ -85,6 +88,8 @@ func jsonHandler(w http.ResponseWriter, r *http.Request, identity *Identity) {
 }
 
 func identityHandler(w http.ResponseWriter, r *http.Request, identity *Identity) {
+	identity.Hits = identity.Hits + 1
+
 	err := templates.ExecuteTemplate(w, "identity.html", identity)
 
 	if err != nil {
@@ -97,8 +102,9 @@ func staticHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	http.HandleFunc("/", makeHandler(identityHandler))
-	http.HandleFunc("/json", makeHandler(jsonHandler))
+	http.HandleFunc("/identity", makeHandler(identityHandler))
+	http.HandleFunc("/identity/json", makeHandler(jsonHandler))
+
 	http.HandleFunc("/static/", staticHandler)
 
 	http.ListenAndServe(":8080", nil)
