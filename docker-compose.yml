@@ -1,0 +1,21 @@
+version: '2'
+services:
+  identity:
+    build: .
+    environment:
+        NAME: Unicorn
+        FILENAME: unicorn.jpg
+    ports:
+     - "8080:8080"
+    networks:
+      - frontend
+      - backend
+  redis:
+    image: redis
+    networks:
+      - backend
+networks:
+  frontend:
+    driver: bridge
+  backend:
+    driver: bridge
