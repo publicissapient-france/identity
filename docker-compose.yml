@@ -1,7 +1,7 @@
 version: '2'
 services:
   identity:
-    build: .
+    image: jlrigau/identity
     environment:
         NAME: Unicorn
         FILENAME: unicorn.jpg
